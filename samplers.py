@@ -11,18 +11,22 @@ class sampler_class(object):
 		old_lnlik = loglikelihood(initial_guess) 	#Initializing
 		accepted_points = []
 		
+		old_point = np.array(initial_guess)
 		while (len(accepted_points) < n_samples):
-			old_point = np.array(initial_guess)
 
 			# This is the proposal density
-			delta = min(1.0,-old_lnlik) # the size of step
-			new_point = old_point + delta*np.random.standard_normal(old_point.shape)
-			new_point = old_point + np.random.normal(old_point, priors)
+			# delta = min(1.0,-old_lnlik) # the size of step
+			# new_point = old_point + delta*np.random.standard_normal(old_point.shape)
+			new_point =old_point+ priors*np.random.standard_normal(old_point.shape)
+
 			
 
 
 			new_lnlik = loglikelihood(new_point)
-			# print new_lnlik
+			
+			# print('\n',old_point,new_point)
+			# print(old_lnlik, new_lnlik)
+
 
 			p = np.exp(new_lnlik-old_lnlik)
 			pi = min(1.0,p)
@@ -36,6 +40,9 @@ class sampler_class(object):
 				if (len(accepted_points)%print_after_n==0):
 					print('\nL=',new_lnlik)
 					print (len(accepted_points), new_point)
+			else:
+				# Accept the old point
+				accepted_points.append(old_point)
 
 
 
