@@ -12,6 +12,8 @@ class sampler_class(object):
 		accepted_points = []
 		
 		old_point = np.array(initial_guess)
+
+		print('Initializing MH sampling')
 		while (len(accepted_points) < n_samples):
 
 			# This is the proposal density
