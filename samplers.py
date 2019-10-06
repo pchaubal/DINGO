@@ -6,7 +6,7 @@ class sampler_class(object):
 		pass
 
 	def MetropolisHastings(self,n_samples,initial_guess,priors, loglikelihood):
-		print_after_n = 100
+		print_after_n = 1000
 
 		old_lnlik = loglikelihood(initial_guess) 	#Initializing
 		accepted_points = []

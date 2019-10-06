@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.stats import norm
 from samplers import sampler_class
 
 def model(model_params):
@@ -24,25 +25,29 @@ def loglikelihood(model_params):
 	# print(lnL)
 	return lnL
 
-npoints = 5000
+npoints = 1000
+n_obs = 3 #number of observations
 # x = np.random.randn(npoints) # 1000 linearly spaced points in [0,10]
 data_params = np.asarray([5,3])
-noise = 1.0*np.random.standard_normal([npoints,3])
-data = np.asarray([model(data_params + 0.0*np.random.standard_normal(data_params.shape)) for i in range(npoints)]) + noise
+noise = 20.0*np.random.standard_normal([npoints,n_obs])
+data = np.asarray([model(data_params + 0.1*np.random.standard_normal(data_params.shape)) for i in range(npoints)]) + noise
 
 #sampler parameters
 n_samp_max = 100000
 initial_guess = [3.0,2.]
-priors = [0.01,0.01]
+priors = [0.05,0.05]
 
 sampler = sampler_class()
 sampled_points = sampler.MetropolisHastings(n_samp_max, initial_guess, priors,loglikelihood)
 
+
 # burn out and sample selection
 burnout = 1000
+n_skip = 3
 sampled_points = sampled_points[burnout:]
-# sampled_points = sampled_points[::10]
 
+np.save('chains.npy', sampled_points)
+sampled_points = sampled_points[::n_skip]
 # ################################
 #  Plotting module. Should be generalized and shifted at some point
 
@@ -52,13 +57,27 @@ beta = sampled_points[:,1]
 
 import matplotlib.pyplot as plt
 # plt.plot(data, 'o', ms =0.5)
+
 plt.subplot(224)
 plt.hist(alpha, density=True, bins=50)
+x = np.linspace(alpha.min(),alpha.max(),100)
+plt.plot(x,norm.pdf(x,loc=alpha.mean(),scale=alpha.std()), color ='k')
 
 plt.subplot(221)
-plt.hist(beta, density=True, orientation='horizontal', bins=50)
+# plt.hist(beta, density=True, orientation='horizontal', bins=50)
+plt.hist(beta, density=True, bins=50)
+y = np.linspace(beta.min(),beta.max(),100)
+plt.plot(y,norm.pdf(y,loc=beta.mean(),scale=beta.std()), color ='k')
+# plt.plot(norm.pdf(x,loc=beta.mean(),scale=beta.std()),x, color ='k')
 
-plt.subplot(222)
+# plt.subplot(222)
+# xi = norm.pdf(x,loc=alpha.mean(),scale=alpha.std())
+# yi = norm.pdf(y,loc=beta.mean(),scale=beta.std())
+# z = np.outer(xi,yi)
+# print(z.shape)
+# plt.contour(x,y,z)
+
+plt.subplot(223)
 plt.scatter(alpha,beta,s=0.5)
 plt.axhline(beta.mean(), color='k', linewidth=0.5)
 plt.axvline(alpha.mean(), color='k', linewidth=0.5)
