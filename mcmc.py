@@ -6,7 +6,9 @@ def model(model_params):
 	a=model_params[0]
 	b=model_params[1]
 
-	observables = np.asarray([a+b, a-b, a*b])
+	# observables = np.asarray([a+b, a-b, a*b])
+	observables = np.asarray([a+b, np.log(a*b)])
+
 
 	
 	return observables
@@ -16,17 +18,13 @@ def loglikelihood(model_params):
 	C = np.cov(data.T)
 	Cinv = np.linalg.inv(C)
 	d = data - model(model_params)
-	
-	# C = sigma**2
-	
-	# The loglikelihood
-	# lnL = - 0.5*np.dot(d,np.dot(Cinv,d.T))
+
 	lnL = -0.5*np.einsum('ij,jl,li ->',d,Cinv,d.T)
-	# print(lnL)
+
 	return lnL
 
 npoints = 1000
-n_obs = 3 #number of observations
+n_obs = 2 #number of observations
 # x = np.random.randn(npoints) # 1000 linearly spaced points in [0,10]
 data_params = np.asarray([5,3])
 noise = 20.0*np.random.standard_normal([npoints,n_obs])
@@ -34,11 +32,11 @@ data = np.asarray([model(data_params + 0.1*np.random.standard_normal(data_params
 
 #sampler parameters
 n_samp_max = 100000
-initial_guess = [3.0,2.]
-priors = [0.05,0.05]
+initial_guess = np.asarray([3.0,2.])
+# priors = [0.05,0.05]
 
 sampler = sampler_class()
-sampled_points = sampler.MetropolisHastings(n_samp_max, initial_guess, priors,loglikelihood)
+sampled_points = sampler.MetropolisHastings(n_samp_max, initial_guess, loglikelihood)
 
 
 # burn out and sample selection
@@ -81,4 +79,4 @@ plt.subplot(223)
 plt.scatter(alpha,beta,s=0.5)
 plt.axhline(beta.mean(), color='k', linewidth=0.5)
 plt.axvline(alpha.mean(), color='k', linewidth=0.5)
-plt.show()
+# plt.show()
