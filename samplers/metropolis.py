@@ -18,14 +18,14 @@ class MetropolisHastings():
 
 	# @profile
     def MH(self,n_samples,paramranges):
-        update_freq = 100
+        update_freq = 1000
         ndims = paramranges.ndim
         initial_guess = np.mean(paramranges,axis=1)
 
         lnL = self.Lik.lnL(initial_guess) 	#Initializing
         old_point = initial_guess
 
-        proposal = 0.8*np.identity(ndims) # N(2.38^2*Sigma)
+        proposal = 10.6*np.identity(ndims) # N(2.38^2*Sigma) = N(5.66*Sigma)
         samples = [initial_guess]
         n_accepted = 0
         for i in range(n_samples):
@@ -53,8 +53,8 @@ class MetropolisHastings():
                 if i==0: continue # Dont do anything on first step
 
                 samples = np.asarray(samples)
-                print('\nLikelihood Evaluations:',i)
-                print('Acceptance ratio:',n_accepted/update_freq)
+#                 print('\nLikelihood Evaluations:',i)
+#                 print('Acceptance ratio:',n_accepted/update_freq)
                 n_accepted=0
                 # update the covmat
 #                 print('Re-estimating the covariance matrix')
@@ -67,11 +67,13 @@ class MetropolisHastings():
                 # Set samples to empty list as we have already saved these
                 samples = []
                 # print a feedback
-                print('lnL=',lnL)
-                print('Parameter Values:',old_point)
+#                 print('lnL=',lnL)
+#                 print('Parameter Values:',old_point)
 
         return
 
+    def tune(self):
+        return
+    def random_rotation(self):
+        return
 
-    def HamiltonianMC(self,n_samples,initial_guess, priors, loglikelihood):
-            return accepted_points
