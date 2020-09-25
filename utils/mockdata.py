@@ -21,8 +21,6 @@ data = model(noisy_params) + noise
 print(data.shape)
 np.save('data.npy',data)
 
-print(noisy_params.shape)
-print(noisy_params)
-# plt.plot(noisy_params[:,0],noisy_params[:,1],'o',markersize=1.)
-plt.plot(data[:,0],data[:,1],'o',markersize=1.)
+plt.plot(noisy_params[:,0],noisy_params[:,1],'o',markersize=1.)
+# plt.plot(data[:,0],data[:,1],'o',markersize=1.)
 plt.show()

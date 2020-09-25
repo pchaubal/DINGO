@@ -13,9 +13,7 @@ class NestedSampler():
         self.ndims = self.paramranges.ndim
         self.n_live = n_live
 
-    def Nested(self):
-        tol = 0.1
-        update_freq = 100
+    def Nested(self,tol,feedback_freq):
         # Sample the parameter space with n_live points
         live_pts = np.random.uniform(self.paramranges[:,0],self.paramranges[:,1],(self.n_live,self.ndims))
         
@@ -70,8 +68,7 @@ class NestedSampler():
             
             # Calculate evidence at every update_freq points
             # comapare it with previous evidence estimate
-            # terminate if change in evidence is less than tol
-            if ((i+1)%update_freq==0):
+            if ((i+1)%feedback_freq==0):
                 new_lnZ = np.log( -np.trapz(np.exp(rejected_pts[:,2]),X) ) 
                 deltaZ_percent = 100*( np.exp(new_lnZ) - np.exp(lnZ) )/np.exp(lnZ)
                 deltaZmax = 100*np.exp(live_list[-1,2])*X_now/np.exp(lnZ)
@@ -98,27 +95,34 @@ class NestedSampler():
         print( "\n\nZ = ",Z )
         print( "Actual error %:",100*np.abs(Z-.010724)/0.010724)
         print( "Total likelihood evaluations:", totals_evals )
+        print( "Total iterations:",i )
 #         posterior samples = Li wi/Z 
         weights = 0.5* (X[:-2] + X[2:])
-        postlik = np.exp(rejected_pts[1:-1,2])*weights/Z
-        postsamples = np.column_stack((rejected_pts[1:-1,:2],postlik))
+        postlik = rejected_pts[1:-1,2] + np.log(weights) - np.log(Z)
+        postsamples = np.column_stack((rejected_pts[1:-1,:],postlik))
         # add the livelist in post samples
-        livesamples = np.column_stack((live_list[:,:2],np.exp(live_list[:,2])*X_now/(1*Z)))
+        live_weight = X_now/self.n_live
+        livesamples = np.column_stack((live_list[:,:],live_list[:,2]+ np.log(live_weight) - np.log(Z)))
         postsamples = np.vstack((postsamples,livesamples))
-#         postsamples[:,2] /= np.min(postsamples[:,2])
-#         postsamples[:,2] = np.floor(postsamples[:,2])
-#         postsamples = np.repeat(postsamples[:,:2],postsamples[:,2].astype(int),axis=0)
-#         postsamples = postsamples[postsamples[:,2]>8]
-#         postsamples = postsamples[1000:]
-#         print( postsamples[:,2] )
-#         c = ChainConsumer() 
-#         c.add_chain(postsamples[:,:2],weights=postsamples[:,2])
-#         c.configure(kde=[1.5])
-#         c.plotter.plot(filename="example.jpg")
+        # select equally weighted posterior samples
+        K = np.max( postsamples[:,3])
+        u = np.random.rand(len(postsamples))
+        equal_wt_ind = np.where(np.log(u) < (postsamples[:,3]-K) )
+        post_equal_weight = postsamples[equal_wt_ind]
+        post_equal_weight = post_equal_weight[:,:2]
+        
+        print( np.std(post_equal_weight,axis=0) )
+        c = ChainConsumer() 
+#         c.add_chain(postsamples[:,:2],weights=postsamples[:,3])
+        c.add_chain(post_equal_weight)
+#         c.add_chain(post_equal_weight)
+#         c.configure(kde=[True,False])
+        c.plotter.plot(filename="example.jpg")
 #         fig = plt.figure()
 #         ax = fig.add_subplot(111, projection='3d')
 #         ax.scatter(postsamples[:,0],postsamples[:,1],postsamples[:,2])
-        plt.plot(rejected_pts[:,0],rejected_pts[:,1],'o',markersize=1.0)
+#         plt.plot(postsamples[:,3])
+#         plt.plot(post_equal_weight[:,0],post_equal_weight[:,1],'o',markersize=1.0)
 #         plt.plot(X,np.exp(rejected_pts[:,2]))
         plt.show()
    

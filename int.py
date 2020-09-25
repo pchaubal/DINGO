@@ -21,22 +21,23 @@ L = Likelihood(data)
 
 # Define our uniform prior via the prior transform.
 def ptform(u):
-    return 40. * u - 20.
+    return 10. * u
 
 # Sample from our distribution.
 sampler = dynesty.NestedSampler(L.lnL, ptform, ndim,
-                                bound='single', nlive=100)
-sampler.run_nested(dlogz=0.01)
+                                bound='single', nlive=500)
+sampler.run_nested(dlogz=0.1)
 res = sampler.results
 
+
 # Plot results.
-from dynesty import plotting as dyplot
+# from dynesty import plotting as dyplot
 
 # Plot a summary of the run.
-rfig, raxes = dyplot.runplot(res)
+# rfig, raxes = dyplot.runplot(res)
 
 # Plot traces and 1-D marginalized posteriors.
-tfig, taxes = dyplot.traceplot(res)
+# tfig, taxes = dyplot.traceplot(res)
 
 # Plot the 2-D marginalized posteriors.
 cfig, caxes = dyplot.cornerplot(res)

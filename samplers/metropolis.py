@@ -5,75 +5,110 @@ from likelihood import Likelihood
 class MetropolisHastings():
     """Implements MH algorithm"""
 
-    def __init__(self,data):
+    def __init__(self,data,paramranges):
         self.posterior = None
         self.data = data
         self.Lik = Likelihood(data)
-
+        self.paramranges = paramranges
+        self.ndims = paramranges.ndim
         # if previous file exists, delete it
         if os.path.isfile('samples.txt'):
             os.remove('samples.txt')
             print('Removed samples.txt from previous run')
         
+    def MH(self,n_samples,initial_guess=None,cov=None,update_freq=100):
+        self.update_freq = update_freq
 
-	# @profile
-    def MH(self,n_samples,paramranges):
-        update_freq = 1000
-        ndims = paramranges.ndim
-        initial_guess = np.mean(paramranges,axis=1)
+        if initial_guess is None:
+            initial_guess = np.mean(self.paramranges,axis=1)
+        
+        if cov is None:
+            self.cov = np.identity(self.ndims)
+        else:
+            self.cov = cov
 
         lnL = self.Lik.lnL(initial_guess) 	#Initializing
         old_point = initial_guess
+        
+        # Define an initial covmat
+        self.cholesky()
 
-        proposal = 10.6*np.identity(ndims) # N(2.38^2*Sigma) = N(5.66*Sigma)
-        samples = [initial_guess]
+        self.samples = initial_guess
         n_accepted = 0
         for i in range(n_samples):
-#             print(lnL)
             #Determine the new point
-            new_pt =  old_point + np.dot(proposal,np.random.randn(ndims))
-            while (np.any(new_pt>paramranges[:,1]) or np.any(new_pt<paramranges[:,0])): 
-                new_pt =  old_point + np.dot(proposal,np.random.randn(ndims))
+#             new_pt =  old_point + np.dot(proposal,np.random.randn(ndims))
+            found_newpt = False
+            while not found_newpt:
+                new_pt = old_point + self.propose()
+                found_newpt = self.is_within_boundaries(new_pt)
+#             new_pt = old_point + self.propose()
+#             while (np.any(new_pt>paramranges[:,1]) or np.any(new_pt<paramranges[:,0])): 
+#                 new_pt =  old_point + np.dot(proposal,np.random.randn(ndims))
 
 
             lnL_new = self.Lik.lnL(new_pt)
 
             if ( np.exp(lnL_new - lnL) > np.random.random() ):
                 # Accept the new point
-                samples.append(new_pt)
+                self.samples = np.vstack((self.samples,new_pt))
+#                 samples.append(new_pt)
                 #Redefine the point
                 old_point, lnL = new_pt, lnL_new
                 # Update the number of accepted points
                 n_accepted += 1
             else:
-                samples.append(old_point)
+#                 samples.append(old_point)
+                self.samples = np.vstack((self.samples,old_point))
 
             #Update the proposal matrix and print a feedback    
-            if (i%update_freq==0):
+            if (i%self.update_freq==0):
                 if i==0: continue # Dont do anything on first step
-
-                samples = np.asarray(samples)
-#                 print('\nLikelihood Evaluations:',i)
-#                 print('Acceptance ratio:',n_accepted/update_freq)
+                self.acceptance = n_accepted/self.update_freq
+                self.tune()
+                self.update_covmat()
                 n_accepted=0
-                # update the covmat
-#                 print('Re-estimating the covariance matrix')
-#                 covmat = np.cov(samples.T)/update_freq 
-#                 proposal += (2.38**2)*covmat
-#                 print(proposal)
                 # write the data to a file
                 with open('samples.txt','a') as f:
-                    np.savetxt(f,samples)
+                    np.savetxt(f,self.samples)
+
                 # Set samples to empty list as we have already saved these
-                samples = []
+                self.samples = self.samples[-1]
                 # print a feedback
-#                 print('lnL=',lnL)
-#                 print('Parameter Values:',old_point)
+                print('\nLikelihood Evaluations:',i)
+                print('lnL=',lnL)
+                print('Acceptance ratio:', self.acceptance)
+                print( self.cov )
 
         return
+
+    def propose(self):
+        # take random normal vector
+        n = np.random.randn(self.ndims)
+        # dot it with cholesky decomposed L to make an ellipse
+        p = np.dot(self.L,n)
+        return p
 
     def tune(self):
+        if (self.acceptance < .3):
+            self.cov *= .9
+
+        if (self.acceptance > .6):
+            self.cov *= 1.1
         return
+
+    def update_covmat(self):
+        self.cov += np.cov(self.samples.T)/self.update_freq 
+#         self.cov = np.cov(self.samples.T) 
+        self.cholesky()
+        return
+
+    def cholesky(self):
+        self.L = np.linalg.cholesky(self.cov)
+        return
+
     def random_rotation(self):
         return
 
+    def is_within_boundaries(self,pt):
+        return( np.all(pt> self.paramranges[:,0]) and np.all(pt < self.paramranges[:,1]) )

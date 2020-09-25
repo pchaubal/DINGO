@@ -7,12 +7,12 @@ data = np.load('data.npy')
 
 # Define the sampler parameters
 paramranges = np.asarray( [ [0.,10.],[0.,10.] ] )
-nlive = 100
+nlive = 500
 
 # Initiate the sampler
 ns = NestedSampler(data,paramranges,nlive)
 
-tol = 0.1
+tol = .1
 feedback_freq = 100
 # Run the sampler
 ns.Nested(tol,feedback_freq)

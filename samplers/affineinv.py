@@ -4,21 +4,21 @@ import matplotlib.pyplot as plt
 
 
 class AffineInv():
-    def __init__(self,data):
+    def __init__(self,data,paramranges):
         self.posterior = None
         self.data = data
         self.Lik = Likelihood(data)
+        self.paramranges = paramranges
 
-    def afinv(self,n_walkers,paramranges):
+    def afinv(self,n_walkers,n_steps):
         a = 2.0
         walkers = list(range(n_walkers))
-        n_iter = 200
-        ndims = paramranges.ndim
+        ndims = self.paramranges.ndim
 
-        points = np.random.uniform(paramranges[:,0],paramranges[:,1],(n_walkers,ndims))
+        points = np.random.uniform(self.paramranges[:,0],self.paramranges[:,1],(n_walkers,ndims))
         lnL = np.asarray([self.Lik.lnL(pt) for pt in points])
         samples = None
-        for iteration in range(n_iter):
+        for iteration in range(n_steps):
             for i in range(n_walkers):
                 #draw walker from complementary ensemble
                 c_set = walkers.copy()
@@ -30,7 +30,7 @@ class AffineInv():
                     u = np.random.random()
                     z = (a/(1+a))*(-1 + 2*u + a*u**2)
                     new_point = points[i] + z*(points[k] - points[i])
-                    if (np.all(new_point<paramranges[:,1]) and np.all(new_point>paramranges[:,0])):
+                    if (np.all(new_point<self.paramranges[:,1]) and np.all(new_point>self.paramranges[:,0])):
                         found_newpt = True
                 lnL_new = self.Lik.lnL(new_point)
                 if (z**(ndims-1)*np.exp(lnL_new - lnL[i]) > np.random.random() ):
