@@ -20,12 +20,9 @@ class Likelihood:
 
     def lnL(self,model_params):
         d = self.data - self.model(model_params)
-#         chisq = np.dot(d,np.dot(self.Cinv,d.T))/(2*np.pi*self.detC)
-#         chisq =np.sum( np.dot( d.T, (self.Cinv @ d.T).T) )/(2*np.pi*self.detC)
-#         print("chisq: ", chisq )
-#         L = np.dot(d,np.dot(self.Cinv,d.T))/(2*np.pi*self.detC)
-#         lnL = -0.5*chisq
-        L = np.sum(d**2)
-        return -np.log(L) 
+        chisq =  np.sum( d*(self.Cinv @ d.T).T )/1e6
+        chisq /= (2*np.pi*self.detC)
+        lnL = -0.5*chisq
+        return lnL 
 
 

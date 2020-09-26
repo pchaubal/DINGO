@@ -91,8 +91,8 @@ class NestedSampler():
         live_contribution =  np.sum(np.exp(live_list[:,2])*X_now/self.n_live)
         Z += live_contribution
 #         Multiply the integral by volume of parameter space
-        Z *= np.prod(np.diff(self.paramranges,axis=1))
-        print( "\n\nZ = ",Z )
+#         Z *= np.prod(np.diff(self.paramranges,axis=1))
+        print( "\n\nZ = ",np.log(Z) )
         print( "Actual error %:",100*np.abs(Z-.010724)/0.010724)
         print( "Total likelihood evaluations:", totals_evals )
         print( "Total iterations:",i )

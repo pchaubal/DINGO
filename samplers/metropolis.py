@@ -98,8 +98,8 @@ class MetropolisHastings():
         return
 
     def update_covmat(self):
-        self.cov += np.cov(self.samples.T)/self.update_freq 
-#         self.cov = np.cov(self.samples.T) 
+#         self.cov += np.cov(self.samples.T)/self.update_freq 
+        self.cov = np.cov(self.samples.T) 
         self.cholesky()
         return
 

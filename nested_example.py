@@ -7,7 +7,7 @@ data = np.load('data.npy')
 
 # Define the sampler parameters
 paramranges = np.asarray( [ [0.,10.],[0.,10.] ] )
-nlive = 500
+nlive = 800
 
 # Initiate the sampler
 ns = NestedSampler(data,paramranges,nlive)
