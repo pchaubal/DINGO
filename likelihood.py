@@ -25,4 +25,11 @@ class Likelihood:
         lnL = -0.5*chisq
         return lnL 
 
+    def rosenbrock2d(self,params):
+        x = params[0]
+        y = params[1]
+
+        f = (1. - x**2.) + 100.*(y - x**2.)**2.
+#         print( "rosenbrock lik:", -np.log(f) )
+        return -np.log(f + 0.01)
 
