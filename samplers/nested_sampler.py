@@ -9,6 +9,7 @@ class NestedSampler():
     def __init__(self,data,paramranges,n_live):
         self.data = data
         self.Lik = Likelihood(data)
+        self.lnL = self.Lik.gauss2d
         self.paramranges = paramranges
         self.ndims = self.paramranges.ndim
         self.n_live = n_live
@@ -18,7 +19,7 @@ class NestedSampler():
         live_pts = np.random.uniform(self.paramranges[:,0],self.paramranges[:,1],(self.n_live,self.ndims))
         
         # Evaluate the likelihood at live points
-        live_lik = np.asarray([self.Lik.lnL(pt) for pt in live_pts])
+        live_lik = np.asarray([self.lnL(pt) for pt in live_pts])
         live_list = np.column_stack((live_pts,live_lik))
         
         # just some initialization stuff
@@ -44,7 +45,7 @@ class NestedSampler():
             while not found_newpt:
                 new_pt = self.propose(live_list)
                 # Evaluate the likelihood of new point
-                L_new = self.Lik.lnL(new_pt)
+                L_new = self.lnL(new_pt)
                 n_evals += 1
                 if ( L_new > lowest_L):
                     n_accepted += 1
@@ -116,7 +117,7 @@ class NestedSampler():
 #         c.add_chain(postsamples[:,:2],weights=postsamples[:,3])
         c.add_chain(post_equal_weight)
 #         c.add_chain(post_equal_weight)
-#         c.configure(kde=[True,False])
+        c.configure(kde=[True,False])
         c.plotter.plot(filename="example.jpg")
 #         fig = plt.figure()
 #         ax = fig.add_subplot(111, projection='3d')

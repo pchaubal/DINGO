@@ -4,10 +4,15 @@ from likelihood import Likelihood
 data = np.load('data.npy')
 L = Likelihood(data)
 
-print(L.lnL([5,3]))
-print(L.lnL([5,2]))
-print(L.lnL([15,13]))
-print(L.lnL([3,3]))
+
+print( L.pseudoplanck([3.20090859e-01, 2.21224104e-02, 6.69496793e-01, 2.09219606e-09, 9.63266374e-01, 5.24779614e-02, 8.12628423e-01]) )
+# print( L.rosenbrock2d([1,1]) )
+# print( L.rosenbrock2d([1,2]) )
+# print( L.rosenbrock2d([2,1]) )
+# print(L.lnL([5,3]))
+# print(L.lnL([5,2]))
+# print(L.lnL([15,13]))
+# print(L.lnL([3,3]))
 
 # integrate it over entire parameter space
 # x = np.linspace(0,10,1000)

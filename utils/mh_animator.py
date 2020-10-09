@@ -16,7 +16,7 @@ def animate(i):
 #     time.sleep(.1)
     return samples 
 
-samp = np.loadtxt('samples.txt')
+samp = np.loadtxt('samples.txt')[:,]
 fig = plt.figure()
 ax = fig.add_subplot(xlim=(0,10), ylim=(0,10))
 newpoint, = ax.plot([],[],'ro',ms=3)

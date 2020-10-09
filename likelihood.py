@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.stats import multivariate_normal as mvn
 
 class Likelihood:
     def __init__(self,data):
@@ -33,3 +34,25 @@ class Likelihood:
 #         print( "rosenbrock lik:", -np.log(f) )
         return -np.log(f + 0.01)
 
+    def pseudoplanck(self,params):
+        cov = np.loadtxt('planck_covmat.txt')
+#         cov = np.identity(7)*np.asarray([.01,.001,.01,1e-9,.001,.001,.01])
+#         cov = np.identity(7)*0.01
+#         print( cov )
+#         import matplotlib.pyplot as plt
+#         plt.imshow(cov); plt.show()
+#         exit()
+#         print(np.linalg.det(cov))
+#         planck_means = [.320, .0221, .669, 2.09219606e-9, .9632, .0524, .8126]
+        planck_means = 0.05*np.ones(7)
+#         planck_means = [5,5,5,5,5,5,5]
+        f = mvn(mean=planck_means, cov=cov)
+        lnL = np.log(f.pdf(params))
+        return lnL
+    
+    def gauss2d(self,params):
+        cov = [[0.1,0.05],[0.05,0.1]]
+        mean = [5,5]
+        f = mvn(mean=mean, cov=cov)
+        lnL = np.log(f.pdf(params))
+        return lnL

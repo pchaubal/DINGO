@@ -8,6 +8,8 @@ class AffineInv():
         self.posterior = None
         self.data = data
         self.Lik = Likelihood(data)
+#         self.lnL = self.Lik.lnL
+        self.lnL = self.Lik.rosenbrock2d
         self.paramranges = paramranges
 
     def afinv(self,n_walkers,n_steps):
@@ -16,7 +18,7 @@ class AffineInv():
         ndims = self.paramranges.ndim
 
         points = np.random.uniform(self.paramranges[:,0],self.paramranges[:,1],(n_walkers,ndims))
-        lnL = np.asarray([self.Lik.lnL(pt) for pt in points])
+        lnL = np.asarray([self.lnL(pt) for pt in points])
         samples = None
         for iteration in range(n_steps):
             for i in range(n_walkers):
@@ -32,7 +34,7 @@ class AffineInv():
                     new_point = points[i] + z*(points[k] - points[i])
                     if (np.all(new_point<self.paramranges[:,1]) and np.all(new_point>self.paramranges[:,0])):
                         found_newpt = True
-                lnL_new = self.Lik.lnL(new_point)
+                lnL_new = self.lnL(new_point)
                 if (z**(ndims-1)*np.exp(lnL_new - lnL[i]) > np.random.random() ):
                     # Accept and update
                     points[i] = new_point

@@ -8,7 +8,7 @@ def plot(burnout=0):
     print( chain.shape )
     mean = chain.mean(axis=0)
     c = ChainConsumer()
-    c.add_chain(chain, parameters=["$\\alpha$", "$\\beta$"])
+    c.add_chain(chain)
 #     c.configure(kde=[2.0])
     c.plotter.plot(filename="example.jpg", figsize="column", truth=mean)
     # pygtc.plotGTC(chains=[chain])

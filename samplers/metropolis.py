@@ -1,6 +1,7 @@
 import numpy as np
 import os
 from likelihood import Likelihood 
+from scipy import stats
 
 class MetropolisHastings():
     """Implements MH algorithm"""
@@ -9,8 +10,12 @@ class MetropolisHastings():
         self.posterior = None
         self.data = data
         self.Lik = Likelihood(data)
+#         self.lnL = self.Lik.lnL
+        self.lnL = self.Lik.gauss2d
+#         self.lnL = self.Lik.pseudoplanck
+#         self.lnL = self.Lik.rosenbrock2d
         self.paramranges = paramranges
-        self.ndims = paramranges.ndim
+        self.ndims = paramranges.shape[0]
         # if previous file exists, delete it
         if os.path.isfile('samples.txt'):
             os.remove('samples.txt')
@@ -27,7 +32,8 @@ class MetropolisHastings():
         else:
             self.cov = cov
 
-        lnL = self.Lik.lnL(initial_guess) 	#Initializing
+        lnL = self.lnL(initial_guess) 	#Initializing
+        lnL += self.prior(initial_guess)
         old_point = initial_guess
         
         # Define an initial covmat
@@ -47,7 +53,7 @@ class MetropolisHastings():
 #                 new_pt =  old_point + np.dot(proposal,np.random.randn(ndims))
 
 
-            lnL_new = self.Lik.lnL(new_pt)
+            lnL_new = self.lnL(new_pt) + self.prior(new_pt)
 
             if ( np.exp(lnL_new - lnL) > np.random.random() ):
                 # Accept the new point
@@ -81,19 +87,24 @@ class MetropolisHastings():
                 print( self.cov )
 
         return
+    
+    def prior(self,point):
+        lnp  = 0. #np.log(stats.norm.pdf(point[0],5,1)) #+ np.log(stats.norm.pdf(point[1],3,2))
+        return lnp
 
     def propose(self):
         # take random normal vector
         n = np.random.randn(self.ndims)
         # dot it with cholesky decomposed L to make an ellipse
         p = np.dot(self.L,n)
+#         print( p )
         return p
 
     def tune(self):
         if (self.acceptance < .3):
             self.cov *= .9
 
-        if (self.acceptance > .6):
+        if (self.acceptance > .7):
             self.cov *= 1.1
         return
 
