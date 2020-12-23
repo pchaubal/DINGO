@@ -26,16 +26,14 @@ class Likelihood:
         lnL = -0.5*chisq
         return lnL 
 
-    def rosenbrock2d(self,params):
-        x = params[0]
-        y = params[1]
+def rosenbrock2d(self,params):
+    x = params[0]
+    y = params[1]
+    f = (1. - x**2.) + 100.*(y - x**2.)**2.
+    return -np.log(f + 0.01)
 
-        f = (1. - x**2.) + 100.*(y - x**2.)**2.
-#         print( "rosenbrock lik:", -np.log(f) )
-        return -np.log(f + 0.01)
-
-    def pseudoplanck(self,params):
-        cov = np.loadtxt('planck_covmat.txt')
+def pseudoplanck(self,params):
+    cov = np.loadtxt('planck_covmat.txt')
 #         cov = np.identity(7)*np.asarray([.01,.001,.01,1e-9,.001,.001,.01])
 #         cov = np.identity(7)*0.01
 #         print( cov )
@@ -44,15 +42,25 @@ class Likelihood:
 #         exit()
 #         print(np.linalg.det(cov))
 #         planck_means = [.320, .0221, .669, 2.09219606e-9, .9632, .0524, .8126]
-        planck_means = 0.05*np.ones(7)
+    planck_means = 0.05*np.ones(7)
 #         planck_means = [5,5,5,5,5,5,5]
-        f = mvn(mean=planck_means, cov=cov)
-        lnL = np.log(f.pdf(params))
-        return lnL
-    
-    def gauss2d(self,params):
-        cov = [[0.1,0.05],[0.05,0.1]]
-        mean = [5,5]
-        f = mvn(mean=mean, cov=cov)
-        lnL = np.log(f.pdf(params))
-        return lnL
+    f = mvn(mean=planck_means, cov=cov)
+    lnL = np.log(f.pdf(params))
+    return lnL
+
+def gauss2d(x):
+    cov = 0.1*np.identity(2) 
+    cov[cov==0] = 0.05
+    mean = [5,5]
+    f = mvn(mean=mean, cov=cov)
+    lnL = np.log(f.pdf(x))
+    return lnL
+
+def gaussmix(params):
+    cov1 = 5*np.identity(2) 
+    cov2 = 0.1*np.identity(2) 
+    mean = [5,5]
+    f1 = mvn(mean=mean, cov=cov1)
+    f2 = mvn(mean=mean, cov=cov2)
+    lnL = np.log(f1.pdf(params) + 10*f2.pdf(params))
+    return lnL

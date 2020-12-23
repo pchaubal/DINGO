@@ -6,10 +6,8 @@ import matplotlib.pyplot as plt
 
 class NestedSampler():
 
-    def __init__(self,data,paramranges,n_live):
-        self.data = data
-        self.Lik = Likelihood(data)
-        self.lnL = self.Lik.gauss2d
+    def __init__(self, lnL, paramranges,n_live):
+        self.lnL = lnL 
         self.paramranges = paramranges
         self.ndims = self.paramranges.ndim
         self.n_live = n_live
@@ -26,14 +24,13 @@ class NestedSampler():
         rejected_pts = np.zeros(3)
         X_now = 1.
         X = np.array([])
-        deltaZ_percent = 100. # just an initialization value.
-        deltaZmax = 100.
+        maxZerr = 100.
         lnZ = -np.inf
         n_evals = 0
         n_accepted = 0
         totals_evals = 0
         i=0
-        while (deltaZmax>tol):
+        while (maxZerr>tol):
             # Sort the point with lowest likelihood value
             live_list = live_list[live_list[:,2].argsort()] 
             lowest_L_pt = live_list[0,:2]
@@ -63,24 +60,20 @@ class NestedSampler():
             
             # update the prior volume fraction by a deterministic approximate
             X = np.append(X,X_now)
-            t1 = self.propose_t()
-            X_now *= t1
-#             X_now = X_now*(self.n_live-1)/self.n_live
+#             X_now *= self.propose_t()
+            X_now *= (self.n_live-1)/self.n_live
             
             # Calculate evidence at every update_freq points
             # comapare it with previous evidence estimate
             if ((i+1)%feedback_freq==0):
-                new_lnZ = np.log( -np.trapz(np.exp(rejected_pts[:,2]),X) ) 
-                deltaZ_percent = 100*( np.exp(new_lnZ) - np.exp(lnZ) )/np.exp(lnZ)
-                deltaZmax = 100*np.exp(live_list[-1,2])*X_now/np.exp(lnZ)
+                lnZ = np.log( -np.trapz(np.exp(rejected_pts[:,2]),X) ) 
+                maxZerr = np.exp(live_list[-1,2])*X_now/np.exp(lnZ)
                 print('\nLikelihood:', live_list[0,2])
-                print( "Evidence:", np.exp(new_lnZ) )
-                print( "Maximum possible Error %:",deltaZmax )
-                print( "change in Evidence:", deltaZ_percent )
+                print( "Evidence(log):", lnZ )
+                print( "Maximum possible Error %:",100*maxZerr )
                 print( "Acceptance ratio %:",100*n_accepted/n_evals)
 
                 totals_evals += n_evals
-                lnZ = new_lnZ
                 n_accepted, n_evals = 0, 0
             i += 1
        ##---------------loop ends --------------##
@@ -98,8 +91,8 @@ class NestedSampler():
         print( "Total likelihood evaluations:", totals_evals )
         print( "Total iterations:",i )
 #         posterior samples = Li wi/Z 
-        weights = 0.5* (X[:-2] + X[2:])
-        postlik = rejected_pts[1:-1,2] + np.log(weights) - np.log(Z)
+        weights = 0.5* ( X[:-2] - X[2:] )
+        postlik = rejected_pts[1:-1,-1] + np.log(weights) - np.log(Z)
         postsamples = np.column_stack((rejected_pts[1:-1,:],postlik))
         # add the livelist in post samples
         live_weight = X_now/self.n_live
@@ -113,16 +106,16 @@ class NestedSampler():
         post_equal_weight = post_equal_weight[:,:2]
         
         print( np.std(post_equal_weight,axis=0) )
-        c = ChainConsumer() 
+#         c = ChainConsumer() 
 #         c.add_chain(postsamples[:,:2],weights=postsamples[:,3])
-        c.add_chain(post_equal_weight)
 #         c.add_chain(post_equal_weight)
-        c.configure(kde=[True,False])
-        c.plotter.plot(filename="example.jpg")
+#         c.add_chain(post_equal_weight)
+#         c.configure(kde=[True,False])
+#         c.plotter.plot(filename="example.jpg")
 #         fig = plt.figure()
 #         ax = fig.add_subplot(111, projection='3d')
 #         ax.scatter(postsamples[:,0],postsamples[:,1],postsamples[:,2])
-#         plt.plot(postsamples[:,3])
+        plt.plot(np.exp(postsamples[:,3]))
 #         plt.plot(post_equal_weight[:,0],post_equal_weight[:,1],'o',markersize=1.0)
 #         plt.plot(X,np.exp(rejected_pts[:,2]))
         plt.show()

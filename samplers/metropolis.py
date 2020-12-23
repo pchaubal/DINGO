@@ -1,19 +1,13 @@
 import numpy as np
 import os
-from likelihood import Likelihood 
 from scipy import stats
 
 class MetropolisHastings():
     """Implements MH algorithm"""
 
-    def __init__(self,data,paramranges):
+    def __init__(self,likelihood,paramranges):
         self.posterior = None
-        self.data = data
-        self.Lik = Likelihood(data)
-#         self.lnL = self.Lik.lnL
-        self.lnL = self.Lik.gauss2d
-#         self.lnL = self.Lik.pseudoplanck
-#         self.lnL = self.Lik.rosenbrock2d
+        self.lnL = likelihood
         self.paramranges = paramranges
         self.ndims = paramranges.shape[0]
         # if previous file exists, delete it
@@ -109,8 +103,8 @@ class MetropolisHastings():
         return
 
     def update_covmat(self):
-#         self.cov += np.cov(self.samples.T)/self.update_freq 
-        self.cov = np.cov(self.samples.T) 
+        self.cov += np.cov(self.samples.T)/self.update_freq 
+#         self.cov = np.cov(self.samples.T) 
         self.cholesky()
         return
 

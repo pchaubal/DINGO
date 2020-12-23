@@ -1,18 +1,19 @@
 import numpy as np
 from samplers.nested_sampler import NestedSampler 
-from likelihood import Likelihood as lik 
+import likelihood
 from utils.plotter import plot
 
-data = np.load('data.npy')
+# Define the likelihood
+lnL = likelihood.gauss2d
 
 # Define the sampler parameters
 paramranges = np.asarray( [ [0.,10.],[0.,10.] ] )
-nlive = 5000
+nlive = 100
 
 # Initiate the sampler
-ns = NestedSampler(data,paramranges,nlive)
+ns = NestedSampler(lnL,paramranges,nlive)
 
-tol = .1
+tol = .05
 feedback_freq = 100
 # Run the sampler
 ns.Nested(tol,feedback_freq)
