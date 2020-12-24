@@ -1,7 +1,6 @@
 import numpy as np
 from samplers.dynamic_nested import DNS 
 import likelihood
-from utils.plotter import plot
 
 # Define the likelihood
 lnL = likelihood.gauss2d
