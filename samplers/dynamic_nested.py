@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from chainconsumer import ChainConsumer
 
 class DNS():
 
@@ -10,30 +11,31 @@ class DNS():
     
     def dynamic_nested(self,tol,feedback_freq):
         # run a low resolution static nested run for the baseline estimates
-        self.static_nested(tol,n_live=100)
-        post_weighted_lik = np.exp(self.postsamples[:,-1])
-        post_lik = self.postsamples[:,-2]
+        post_ew,static_smp,post_wt,X_static = self.static_nested(tol,n_live=50)
+#         post_weighted_lik = np.exp(self.postsamples[:,-1])
+        post_lik = static_smp[:,-1]
+        post_wt = np.exp(post_wt)
         # define an importance function over the interval
         # Iz = (1. - Z/Zf)/np.trapz(1.-Z,X)
         fp = 1
-        I = (fp)*post_weighted_lik/np.max(post_weighted_lik) #+ (1-fp)*Iz
+        I = (fp)*post_wt/np.max(post_wt) #+ (1-fp)*Iz
         # Determine points according to importance function
-        # 1000 points at the highest resolution location
-        num_live = 100+ 200*I
+        # A +B*I -> atleast A points and max B at the highest resolution 
+        num_live = 100 + 10000*I
         # make a live list
         n_live = 100
         live_list = self.make_live_list(n_live)
-#         plt.plot(post_weighted_lik)
-#         plt.show()
-#         exit()
+        rejected_pts = np.zeros(self.ndims+1)
         #---- Populating live list ----#
         Xnow =1.
+        X = np.asarray([Xnow])
         # iterate over intervals of X
-        for i,Xi in enumerate(self.X):
-            print( '\n',i )
+        for i,Xi in enumerate(X_static):
+#             print( '\n',i )
+#             print( num_live[i] )
             Lmin = live_list[0,-1]
             if num_live[i]> n_live:
-                print( 'Populating live list' )
+#                 print( 'Populating live list' )
                 while (n_live < num_live[i]):
                     # propose a point within the constrained volume
                     new_pt = self.propose_above_L(live_list,Lmin)
@@ -41,34 +43,48 @@ class DNS():
                     live_list = np.vstack((live_list,new_pt))
                     # Update the live points counter
                     n_live += 1
-                print( 'Popolating live list done. nlive=', n_live, live_list.shape )
+#                 print( 'Popolating live list done. nlive=', n_live, live_list.shape )
         #---- End of populating live list ----#
             live_list = live_list[live_list[:,-1].argsort()] 
-            if (Lmin>post_lik[i+1]):
-                print( 'Lmin greater than next pt lik. Correct me' )
+#             if (Lmin>post_lik[i+1]):
+#                 print( 'Lmin greater than next pt lik ' )
+#                 print( Lmin, post_lik[i+1] )
         #---- Reduce the parameter volume ----#
             while (Lmin < post_lik[i+1]):
+                rejected_pts = np.vstack((rejected_pts,live_list[0]))
                 if (n_live > num_live[i]):
-                    print( 'Decreasing without substitution' )
+#                     print( 'Decreasing without substitution' )
                     # Reduce without substitution
                     # remove Lmin from live_list
-                    live_list = live_list[:-1]
+                    live_list = live_list[1:]
                     n_live -= 1
-                    print( 'nlive = ',n_live,live_list.shape )
+#                     print( 'nlive = ',n_live,live_list.shape )
                 else:
-                    print( 'Substituting' )
+#                     print( 'Substituting' )
                     # Reduce exponentially by replacing Lmin point
                     new_pt = self.propose_above_L(live_list,live_list[0,-1])
                     # Substitute the lowest likelihood point by new point
                     live_list[0] = new_pt
                     live_list = live_list[live_list[:,-1].argsort()] 
                     Lmin = live_list[0,-1]
-                    print( 'Done subs' )
+#                     print( 'Done subs' )
                 
-                # Redefine parameter volume
-                # Reduction is same in both cases
+                    # Redefine parameter volume
+                    # Reduction is same in both cases
                 Xnow *= (n_live-1)/n_live 
-                print( 'Xnow =', Xnow, 'Lmin=', Lmin )
+                X = np.append(X,Xnow)
+#                 print( Xnow, X.shape )
+#                 print( 'Xnow =', Xnow, 'Lmin=', Lmin, '/', live_list[-3:,-1] )
+        print( rejected_pts.shape )
+
+        post_ew, samples, post_wt = self.make_post_from_samples(rejected_pts,live_list,X) 
+        c = ChainConsumer() 
+        c.add_chain(post_ew[:,:-1])
+#         c.configure(kde=True)
+        c.plotter.plot(filename="example.jpg")
+#         plt.plot(post_wt)
+        plt.show()
+
         return
 
     def static_nested(self,tol,n_live):
@@ -114,24 +130,27 @@ class DNS():
 
         # Z = integral wrt X of lik 
         # negative sign is to correct for integrating along a decreasing axis
-        Z =-np.trapz(np.exp(rejected_pts[:,-1]),X) 
+#         Z =-np.trapz(np.exp(rejected_pts[:,-1]),X) 
         # add contribution from remaining live points
-        live_lik = np.exp(live_list[:,-1])
-        live_contribution =  np.sum(live_lik*X_now/n_live)
-        Z += live_contribution
+#         live_lik = np.exp(live_list[:,-1])
+#         live_contribution =  np.sum(live_lik*X_now/n_live)
+#         Z += live_contribution
         # posterior samples = Li wi/Z 
-        weights = 0.5*( X[:-2] - X[2:] )
+#         weights = 0.5*( X[:-2] - X[2:] )
         # leaving out first and last
-        rejected_lik = rejected_pts[1:-1,-1]
-        post_weighted_lik = rejected_pts[1:-1,-1] + np.log(weights) - np.log(Z)
-        self.postsamples = np.column_stack((rejected_pts[1:-1,:],post_weighted_lik))
+#         rejected_lik = rejected_pts[1:-1,-1]
+#         post_weighted_lik = rejected_pts[1:-1,-1] + np.log(weights) - np.log(Z)
+#         self.postsamples = np.column_stack((rejected_pts[1:-1,:],post_weighted_lik))
         # add the livelist in post samples
-        live_weight = X_now/n_live
-        livesamples = np.column_stack((live_list[:,:],live_list[:,-1]+ np.log(live_weight) - np.log(Z)))
-        self.postsamples = np.vstack((self.postsamples,livesamples))
-        self.X = X
-        return
+#         live_weight = X_now/n_live
+#         livesamples = np.column_stack((live_list[:,:],live_list[:,-1]+ np.log(live_weight) - np.log(Z)))
+#         self.postsamples = np.vstack((self.postsamples,livesamples))
+        post_ew, samples, post_wt = self.make_post_from_samples(rejected_pts,live_list,X) 
+        print( 'static run done.', post_ew.shape, samples.shape, post_wt.shape )
+#         self.X = X
+        return post_ew, samples, post_wt,X
         
+
     def propose_above_L(self,live_pts,Lmin):
 
         found_newpt = False
@@ -139,6 +158,7 @@ class DNS():
             new_pt = self.propose(live_pts)
             # Evaluate the likelihood of new point
             L_new = self.lnL(new_pt)
+            self.n_evals += 1
             if ( L_new > Lmin):
                 found_newpt = True
         new_pt = np.append(new_pt,L_new)
@@ -177,8 +197,30 @@ class DNS():
         u = np.random.random()
         t = u**(1./n_live)
         return t
-    
-    def make_equal_weight_samples(samples):
+   
+
+    def make_post_from_samples(self,rejected_pts,live_pts,X):
+
+        #--- Evidence Calculation ---#
+        Z =-np.trapz(np.exp(rejected_pts[:,-1]),X) 
+        live_lik = live_pts[:,-1]
+#         live_contribution =  np.sum(live_lik*X[-1]/len(live_pts))
+        live_wt = live_lik + np.log(X[-1]/len(live_pts))
+        Z += np.sum(np.exp(live_wt))
+        #--- Evidence Calculation ---#
+        #--- Posterior weight calculation ---#
+        weights = 0.5*( X[:-2] - X[2:] )
+        rejected_lik = rejected_pts[1:-1,-1] # last column is logL
+        rejected_wt = rejected_lik + np.log(weights) - np.log(Z)
+#         post_wt_lik = rejected_lik + np.log(weights) - np.log(Z)
+        # ---
+        live_wt -= np.log(Z)
+        samples = np.vstack((rejected_pts[1:-1],live_pts))
+        sample_wt = np.concatenate((rejected_wt,live_wt))
+        post_ew = self.make_equal_weight_samples(samples,sample_wt)
+        return post_ew,samples,sample_wt
+
+    def make_equal_weight_samples(self,samples,post_wt_lik):
         """
         Select equally weighted posterior samples
 
@@ -191,11 +233,10 @@ class DNS():
         -------
         equally weighted posterior samples
         """
-        K = np.max( samples[:,-1])
+        K = np.max( post_wt_lik)
         u = np.random.rand(len(samples))
-        equal_wt_ind = np.where(np.log(u) < (samples[:,-1]-K) )
+        equal_wt_ind = np.where(np.log(u) < (post_wt_lik-K) )
         post_equal_weight = samples[equal_wt_ind]
-        post_equal_weight = post_equal_weight[:,:-1]
         return post_equal_weight
     
     def make_live_list(self,n_live):
