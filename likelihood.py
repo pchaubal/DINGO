@@ -32,18 +32,11 @@ def rosenbrock2d(self,params):
     f = (1. - x**2.) + 100.*(y - x**2.)**2.
     return -np.log(f + 0.01)
 
-def pseudoplanck(self,params):
-    cov = np.loadtxt('planck_covmat.txt')
-#         cov = np.identity(7)*np.asarray([.01,.001,.01,1e-9,.001,.001,.01])
-#         cov = np.identity(7)*0.01
-#         print( cov )
-#         import matplotlib.pyplot as plt
-#         plt.imshow(cov); plt.show()
-#         exit()
-#         print(np.linalg.det(cov))
-#         planck_means = [.320, .0221, .669, 2.09219606e-9, .9632, .0524, .8126]
-    planck_means = 0.05*np.ones(7)
-#         planck_means = [5,5,5,5,5,5,5]
+cov = np.loadtxt('planck_cov.txt')
+def pseudoplanck(params):
+#     cov = np.loadtxt('planck_cov.txt')
+#     cov = np.identity(6)
+    planck_means =np.asarray([.320, .0221, .669, 3., .9632, .0524])
     f = mvn(mean=planck_means, cov=cov)
     lnL = np.log(f.pdf(params))
     return lnL

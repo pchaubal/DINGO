@@ -1,52 +1,67 @@
 import numpy as np
 from likelihood import Likelihood 
 import matplotlib.pyplot as plt
+from numba import jit
 
 
 class AffineInv():
-    def __init__(self,data,paramranges):
+    def __init__(self,lnL,paramranges):
         self.posterior = None
-        self.data = data
-        self.Lik = Likelihood(data)
-#         self.lnL = self.Lik.lnL
-        self.lnL = self.Lik.rosenbrock2d
+        self.lnL = lnL 
         self.paramranges = paramranges
+        self.ndims = len(self.paramranges)
 
     def afinv(self,n_walkers,n_steps):
-        a = 2.0
-        walkers = list(range(n_walkers))
-        ndims = self.paramranges.ndim
+        # Give the starting guesses uniformly form the param range, calculate the lnL for these
+#         walkers = np.random.uniform(self.paramranges[:,0],self.paramranges[:,1],(n_walkers,self.ndims))
+        #give the initial guess in a 1-sigma ball around the bestfit
+        mean = np.load('../ML/planck_mean.npy')
+        cov = np.load('../ML/planck_covmat.npy')
+        p0 = np.random.multivariate_normal(mean, cov, size=n_walkers)
+        p = np.zeros((n_walkers,self.ndims))
+        p[:,:-1] = p0
+        p[:,-1] = 1 +  0.005*np.random.randn(n_walkers)
+        walkers = p
 
-        points = np.random.uniform(self.paramranges[:,0],self.paramranges[:,1],(n_walkers,ndims))
-        lnL = np.asarray([self.lnL(pt) for pt in points])
-        samples = None
-        for iteration in range(n_steps):
-            for i in range(n_walkers):
-                #draw walker from complementary ensemble
-                c_set = walkers.copy()
-                c_set.pop(i)
-                k = np.random.choice(c_set)
-
-                found_newpt = False
-                while (found_newpt==False):
-                    u = np.random.random()
-                    z = (a/(1+a))*(-1 + 2*u + a*u**2)
-                    new_point = points[i] + z*(points[k] - points[i])
-                    if (np.all(new_point<self.paramranges[:,1]) and np.all(new_point>self.paramranges[:,0])):
-                        found_newpt = True
-                lnL_new = self.lnL(new_point)
-                if (z**(ndims-1)*np.exp(lnL_new - lnL[i]) > np.random.random() ):
-                    # Accept and update
-                    points[i] = new_point
-                    lnL[i] = lnL_new
-#                     print( "accepted" )
-            
-            if samples is not None:
-                samples = np.vstack((samples,points))
-            else:
-                samples = points
-
+        lnLik = np.asarray([self.lnL(pt) for pt in walkers])
+        
+        self.samples = np.zeros((n_steps, n_walkers, self.ndims))
+        for i_step in range(n_steps):
+            print( i_step )
+            for i_walker in range(n_walkers):
+                #define the complementary ensemble by removing this walker 
+                c_set = np.delete(walkers,i_walker, axis=0)
+                walkers[i_walker], lnLik[i_walker] = self.update_walker(walkers[i_walker], lnLik[i_walker], c_set)
+           
+            self.samples[i_step] = walkers 
+        ##----- nested loop ends-------- ##
+        samples = self.samples.reshape( int(n_walkers*n_steps), self.ndims )
         np.savetxt("samples.txt",samples)
-#         plt.plot(samples[:,0],samples[:,1],'o',markersize=1.0)
-#         plt.show()
+        return samples
     
+    def update_walker(self, pt, lnLik, complementary_set):
+        a = 2.0
+        max_iter = 1000
+        rng = np.random.default_rng()
+        hook_pt = rng.choice(complementary_set, axis=0)
+
+        found_newpt = False
+        while (found_newpt==False): # run the loop until a new point is found
+#         for i in range(max_iter):
+            u = np.random.random()
+            z = (a/(1+a))*(-1 + 2*u + a*u**2)
+            newpt = pt + z*(hook_pt - pt)
+            if self.is_within_boundaries(newpt):
+                found_newpt = True
+#                 break
+        if not found_newpt:
+            print( 'Did not find new point' )
+        ###---------------###
+        lnLik_new = self.lnL(newpt)
+        if ( z**(self.ndims-1)*np.exp(lnLik_new - lnLik) > np.random.random() ): # Jump to the new point
+            return newpt, lnLik_new 
+        else:
+            return pt, lnLik
+    
+    def is_within_boundaries(self,pt):
+        return( np.all(pt> self.paramranges[:,0]) and np.all(pt < self.paramranges[:,1]) )

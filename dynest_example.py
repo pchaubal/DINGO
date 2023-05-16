@@ -11,8 +11,8 @@ paramranges = np.asarray( [ [0.,10.],[0.,10.] ] )
 # Initiate the sampler
 dns = DNS(lnL,paramranges)
 
-tol = .05
-feedback_freq = 100
+tol = .5
+feedback_freq = 500
 # Run the sampler
 dns.dynamic_nested(tol,feedback_freq)
 

@@ -1,11 +1,8 @@
 import numpy as np
-from likelihood import Likelihood 
-
-data = np.load('data.npy')
-L = Likelihood(data)
+import likelihood as L
 
 
-print( L.pseudoplanck([3.20090859e-01, 2.21224104e-02, 6.69496793e-01, 2.09219606e-09, 9.63266374e-01, 5.24779614e-02, 8.12628423e-01]) )
+print( L.pseudoplanck([.320, .0221, .669, 3., .9632, .0524] ) )
 # print( L.rosenbrock2d([1,1]) )
 # print( L.rosenbrock2d([1,2]) )
 # print( L.rosenbrock2d([2,1]) )

@@ -1,8 +1,7 @@
 import numpy as np
 from samplers.metropolis import MetropolisHastings
-# from likelihood import Likelihood as lik 
-import likelihood
 from utils.plotter import plot
+from likelihoods.planck_lik import Planck
 
 # Define the likelihood
 # data = np.load('data.npy')
